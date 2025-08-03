@@ -43,7 +43,54 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
   });
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => {
+// 🚫 Prevent pinned tabs from being closed - improved version
+let isBrowserShuttingDown = false;
+
+// Listen for window removal to detect browser shutdown
+chrome.windows.onRemoved.addListener((windowId) => {
+  isBrowserShuttingDown = true;
+  console.log(
+    `PinStay: Browser window ${windowId} closing, allowing all tabs to close`
+  );
+});
+
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+  // Check if this tab was pinned before removal
+  if (tabId in pinnedDomains) {
+    // Allow browser to close - don't prevent tab removal if browser is shutting down
+    if (removeInfo.isWindowClosing || isBrowserShuttingDown) {
+      console.log(
+        `PinStay: Allowing pinned tab ${tabId} to close (browser shutting down)`
+      );
+      delete pinnedDomains[tabId];
+      return;
+    }
+
+    console.warn(`PinStay: Preventing pinned tab ${tabId} from being closed`);
+
+    // Recreate the tab with the same URL
+    chrome.tabs.create(
+      {
+        url: `https://${pinnedDomains[tabId]}`,
+        pinned: true,
+        active: false,
+      },
+      (newTab) => {
+        if (newTab && newTab.id) {
+          // Transfer the domain lock to the new tab
+          pinnedDomains[newTab.id] = pinnedDomains[tabId];
+          console.log(
+            `PinStay: Recreated pinned tab ${newTab.id} for domain ${pinnedDomains[tabId]}`
+          );
+        }
+      }
+    );
+
+    // Don't delete from pinnedDomains yet, as we're recreating the tab
+    return;
+  }
+
+  // Only delete from pinnedDomains if it wasn't a pinned tab we prevented from closing
   delete pinnedDomains[tabId];
 });
 
