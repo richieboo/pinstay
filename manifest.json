@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "PinStay",
+  "version": "1.0",
+  "description": "Prevents pinned tabs from leaving their original domain.",
+  "permissions": ["tabs", "webNavigation", "scripting"],
+
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "PinStay"
+  }
+}
