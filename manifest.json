@@ -17,7 +17,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["install.html", "uninstall.html"],
+      "resources": ["install.html"],
       "matches": ["<all_urls>"]
     }
   ]

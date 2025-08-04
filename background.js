@@ -285,7 +285,8 @@ chrome.runtime.onStartup.addListener(() => {
   });
 
   // Set uninstall URL on startup - direct to Google Form
-  const uninstallURL = "https://docs.google.com/forms/d/e/1FAIpQLSd5tLRhiwxR3LLYWB00dXW2xv55aXEKDwOjvDNnrgZqQjjTVQ/viewform?usp=header";
+  const uninstallURL =
+    "https://docs.google.com/forms/d/e/1FAIpQLSd5tLRhiwxR3LLYWB00dXW2xv55aXEKDwOjvDNnrgZqQjjTVQ/viewform?usp=header";
   chrome.runtime.setUninstallURL(uninstallURL);
   console.log("PinStay: Uninstall URL set on startup:", uninstallURL);
 });
@@ -314,7 +315,8 @@ chrome.runtime.onInstalled.addListener((details) => {
   });
 
   // Set uninstall URL - direct to Google Form
-  const uninstallURL = "https://docs.google.com/forms/d/e/1FAIpQLSd5tLRhiwxR3LLYWB00dXW2xv55aXEKDwOjvDNnrgZqQjjTVQ/viewform?usp=header";
+  const uninstallURL =
+    "https://docs.google.com/forms/d/e/1FAIpQLSd5tLRhiwxR3LLYWB00dXW2xv55aXEKDwOjvDNnrgZqQjjTVQ/viewform?usp=header";
   chrome.runtime.setUninstallURL(uninstallURL);
   console.log("PinStay: Uninstall URL set:", uninstallURL);
 });
