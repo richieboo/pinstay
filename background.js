@@ -2,7 +2,8 @@ const pinnedDomains = {};
 
 function getDomain(url) {
   try {
-    return new URL(url).hostname;
+    const urlObj = new URL(url);
+    return urlObj.hostname.toLowerCase();
   } catch (e) {
     return null;
   }
@@ -10,127 +11,147 @@ function getDomain(url) {
 
 // Function to show custom popup notification
 function showPopup(tabId, title, message, position = "bottom-right") {
-  chrome.scripting
-    .executeScript({
-      target: { tabId: tabId },
-      func: (title, message, position) => {
-        // Remove any existing popup first
-        const existingPopup = document.getElementById("pinstay-popup");
-        if (existingPopup) {
-          existingPopup.remove();
-        }
+  // First check if we can inject scripts into this tab
+  chrome.tabs.get(tabId, (tab) => {
+    if (chrome.runtime.lastError || !tab || !tab.url) {
+      console.error("PinStay: Cannot get tab info for popup");
+      return;
+    }
 
-        // Remove any existing styles
-        const existingStyle = document.querySelector("style[data-pinstay]");
-        if (existingStyle) {
-          existingStyle.remove();
-        }
+    // Don't try to inject scripts into restricted pages
+    if (
+      tab.url.startsWith("chrome://") ||
+      tab.url.startsWith("chrome-extension://") ||
+      tab.url.startsWith("edge://") ||
+      tab.url.startsWith("about:") ||
+      tab.url.startsWith("moz-extension://")
+    ) {
+      console.log(`PinStay: Skipping popup for restricted page: ${tab.url}`);
+      return;
+    }
 
-        // Create popup element
-        const popup = document.createElement("div");
-        popup.id = "pinstay-popup";
-        popup.innerHTML = `
-        <div class="pinstay-title">${title}</div>
-        <div class="pinstay-message">${message}</div>
-      `;
-
-        // Set position immediately
-        if (position === "top-center") {
-          popup.style.top = "20px";
-          popup.style.left = "50%";
-          popup.style.transform = "translateX(-50%) translateZ(0)";
-        } else {
-          // bottom-right with 75px offset from both bottom and right
-          popup.style.bottom = "75px";
-          popup.style.right = "75px";
-          popup.style.transform = "translateZ(0)";
-        }
-
-        // Add styles
-        const style = document.createElement("style");
-        style.setAttribute("data-pinstay", "true");
-        style.textContent = `
-                 #pinstay-popup {
-           position: fixed;
-           z-index: 999999;
-           background: #2c3e50;
-           color: white;
-           padding: 12px 16px;
-           border-radius: 8px;
-           box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-           font-size: 14px;
-           max-width: 300px;
-           animation: pinstay-slide-in 0.3s ease-out;
-           border-left: 4px solid #187D28;
-           pointer-events: none;
-           transform: translateZ(0);
-         }
-         
-         .pinstay-title {
-           font-weight: 600;
-           margin-bottom: 4px;
-           color: #187D28;
-         }
-        
-        .pinstay-message {
-          line-height: 1.4;
-        }
-        
-        @keyframes pinstay-slide-in {
-          from {
-            opacity: 0;
-            transform: translateY(20px) translateZ(0);
+    chrome.scripting
+      .executeScript({
+        target: { tabId: tabId },
+        func: (title, message, position) => {
+          // Remove any existing popup first
+          const existingPopup = document.getElementById("pinstay-popup");
+          if (existingPopup) {
+            existingPopup.remove();
           }
-          to {
-            opacity: 1;
-            transform: translateY(0) translateZ(0);
-          }
-        }
-        
-        @keyframes pinstay-fade-out {
-          from {
-            opacity: 1;
-            transform: translateY(0) translateZ(0);
-          }
-          to {
-            opacity: 0;
-            transform: translateY(-10px) translateZ(0);
-          }
-        }
-      `;
 
-        // Add to page
-        try {
-          document.head.appendChild(style);
-          document.body.appendChild(popup);
-        } catch (e) {
-          console.error("PinStay: Failed to add popup to page:", e);
-          return;
-        }
+          // Remove any existing styles
+          const existingStyle = document.querySelector("style[data-pinstay]");
+          if (existingStyle) {
+            existingStyle.remove();
+          }
 
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
+          // Create popup element
+          const popup = document.createElement("div");
+          popup.id = "pinstay-popup";
+          popup.innerHTML = `
+          <div class="pinstay-title">${title}</div>
+          <div class="pinstay-message">${message}</div>
+        `;
+
+          // Set position immediately
+          if (position === "top-center") {
+            popup.style.top = "20px";
+            popup.style.left = "50%";
+            popup.style.transform = "translateX(-50%) translateZ(0)";
+          } else {
+            // bottom-right with 75px offset from both bottom and right
+            popup.style.bottom = "75px";
+            popup.style.right = "75px";
+            popup.style.transform = "translateZ(0)";
+          }
+
+          // Add styles
+          const style = document.createElement("style");
+          style.setAttribute("data-pinstay", "true");
+          style.textContent = `
+          #pinstay-popup {
+            position: fixed;
+            z-index: 999999;
+            background: #2c3e50;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            max-width: 300px;
+            animation: pinstay-slide-in 0.3s ease-out;
+            border-left: 4px solid #187D28;
+            pointer-events: none;
+            transform: translateZ(0);
+          }
+          
+          .pinstay-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #187D28;
+          }
+          
+          .pinstay-message {
+            line-height: 1.4;
+          }
+          
+          @keyframes pinstay-slide-in {
+            from {
+              opacity: 0;
+              transform: translateY(20px) translateZ(0);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) translateZ(0);
+            }
+          }
+          
+          @keyframes pinstay-fade-out {
+            from {
+              opacity: 1;
+              transform: translateY(0) translateZ(0);
+            }
+            to {
+              opacity: 0;
+              transform: translateY(-10px) translateZ(0);
+            }
+          }
+        `;
+
+          // Add to page
           try {
-            popup.style.animation = "pinstay-fade-out 0.3s ease-in";
-            setTimeout(() => {
-              if (popup.parentNode) {
-                popup.parentNode.removeChild(popup);
-              }
-              if (style.parentNode) {
-                style.parentNode.removeChild(style);
-              }
-            }, 300);
+            document.head.appendChild(style);
+            document.body.appendChild(popup);
           } catch (e) {
-            console.error("PinStay: Failed to remove popup:", e);
+            console.error("PinStay: Failed to add popup to page:", e);
+            return;
           }
-        }, 5000);
-      },
-      args: [title, message, position],
-    })
-    .catch((error) => {
-      console.error("PinStay: Failed to execute popup script:", error);
-    });
+
+          // Auto-remove after 5 seconds
+          setTimeout(() => {
+            try {
+              popup.style.animation = "pinstay-fade-out 0.3s ease-in";
+              setTimeout(() => {
+                if (popup.parentNode) {
+                  popup.parentNode.removeChild(popup);
+                }
+                if (style.parentNode) {
+                  style.parentNode.removeChild(style);
+                }
+              }, 300);
+            } catch (e) {
+              console.error("PinStay: Failed to remove popup:", e);
+            }
+          }, 5000);
+        },
+        args: [title, message, position],
+      })
+      .catch((error) => {
+        console.error("PinStay: Failed to execute popup script:", error);
+      });
+  });
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -159,6 +180,10 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     const allowedDomain = pinnedDomains[tab.id];
     const nextDomain = getDomain(details.url);
 
+    console.log(
+      `PinStay Debug: Tab ${tab.id} navigating from ${allowedDomain} to ${nextDomain}`
+    );
+
     if (allowedDomain && nextDomain && allowedDomain !== nextDomain) {
       console.warn(
         `PinStay: Preventing tab ${tab.id} from navigating to ${nextDomain}`
@@ -172,7 +197,7 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
         showPopup(
           tab.id,
           "PinStay",
-          "Pinned tabs are locked to the domain they were pinned. You can unpin a tab by clicking the pin icon in the top right corner of the tab, or right clicking the tab and selecting 'Unpin'.",
+          "Your pinned tabs are locked to the domain they were pinned at",
           "bottom-right"
         );
       }, 500);
@@ -281,7 +306,7 @@ chrome.runtime.onInstalled.addListener((details) => {
       }
     }
   });
-});
 
-// Handle uninstall event
-chrome.runtime.setUninstallURL(chrome.runtime.getURL("uninstall.html"));
+  // Note: Uninstall URL setting removed due to timing issues
+  // The uninstall.html page will still work if accessed directly
+});
