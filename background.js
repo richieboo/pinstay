@@ -8,13 +8,145 @@ function getDomain(url) {
   }
 }
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (!tab || !tab.pinned || !tab.url) return;
+// Function to show custom popup notification
+function showPopup(tabId, title, message, position = "bottom-right") {
+  chrome.scripting
+    .executeScript({
+      target: { tabId: tabId },
+      func: (title, message, position) => {
+        // Remove any existing popup first
+        const existingPopup = document.getElementById("pinstay-popup");
+        if (existingPopup) {
+          existingPopup.remove();
+        }
 
-  const currentDomain = getDomain(tab.url);
-  if (!(tabId in pinnedDomains)) {
+        // Remove any existing styles
+        const existingStyle = document.querySelector("style[data-pinstay]");
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+
+        // Create popup element
+        const popup = document.createElement("div");
+        popup.id = "pinstay-popup";
+        popup.innerHTML = `
+        <div class="pinstay-title">${title}</div>
+        <div class="pinstay-message">${message}</div>
+      `;
+
+        // Set position immediately
+        if (position === "top-center") {
+          popup.style.top = "20px";
+          popup.style.left = "50%";
+          popup.style.transform = "translateX(-50%) translateZ(0)";
+        } else {
+          // bottom-right with 75px offset from both bottom and right
+          popup.style.bottom = "75px";
+          popup.style.right = "75px";
+          popup.style.transform = "translateZ(0)";
+        }
+
+        // Add styles
+        const style = document.createElement("style");
+        style.setAttribute("data-pinstay", "true");
+        style.textContent = `
+                 #pinstay-popup {
+           position: fixed;
+           z-index: 999999;
+           background: #2c3e50;
+           color: white;
+           padding: 12px 16px;
+           border-radius: 8px;
+           box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+           font-size: 14px;
+           max-width: 300px;
+           animation: pinstay-slide-in 0.3s ease-out;
+           border-left: 4px solid #187D28;
+           pointer-events: none;
+           transform: translateZ(0);
+         }
+         
+         .pinstay-title {
+           font-weight: 600;
+           margin-bottom: 4px;
+           color: #187D28;
+         }
+        
+        .pinstay-message {
+          line-height: 1.4;
+        }
+        
+        @keyframes pinstay-slide-in {
+          from {
+            opacity: 0;
+            transform: translateY(20px) translateZ(0);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) translateZ(0);
+          }
+        }
+        
+        @keyframes pinstay-fade-out {
+          from {
+            opacity: 1;
+            transform: translateY(0) translateZ(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(-10px) translateZ(0);
+          }
+        }
+      `;
+
+        // Add to page
+        try {
+          document.head.appendChild(style);
+          document.body.appendChild(popup);
+        } catch (e) {
+          console.error("PinStay: Failed to add popup to page:", e);
+          return;
+        }
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          try {
+            popup.style.animation = "pinstay-fade-out 0.3s ease-in";
+            setTimeout(() => {
+              if (popup.parentNode) {
+                popup.parentNode.removeChild(popup);
+              }
+              if (style.parentNode) {
+                style.parentNode.removeChild(style);
+              }
+            }, 300);
+          } catch (e) {
+            console.error("PinStay: Failed to remove popup:", e);
+          }
+        }, 5000);
+      },
+      args: [title, message, position],
+    })
+    .catch((error) => {
+      console.error("PinStay: Failed to execute popup script:", error);
+    });
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!tab || !tab.url) return;
+
+  // If tab is pinned and not already tracked, add it to protection
+  if (tab.pinned && !(tabId in pinnedDomains)) {
+    const currentDomain = getDomain(tab.url);
     pinnedDomains[tabId] = currentDomain;
     console.log(`PinStay: Locked tab ${tabId} to domain ${currentDomain}`);
+  }
+
+  // If tab was unpinned, remove it from protection
+  if (!tab.pinned && tabId in pinnedDomains) {
+    delete pinnedDomains[tabId];
+    console.log(`PinStay: Unlocked tab ${tabId} (unpinned)`);
   }
 });
 
@@ -31,14 +163,19 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
       console.warn(
         `PinStay: Preventing tab ${tab.id} from navigating to ${nextDomain}`
       );
+
+      // Prevent navigation by redirecting back to the allowed domain
       chrome.tabs.update(tab.id, { url: `https://${allowedDomain}` });
 
-      // ✅ Inject alert into the page
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () =>
-          alert("PinStay: you cannot navigate away from a pinned tab."),
-      });
+      // Show popup after a short delay to ensure the page is stable
+      setTimeout(() => {
+        showPopup(
+          tab.id,
+          "PinStay",
+          "Pinned tabs are locked to the domain they were pinned. You can unpin a tab by clicking the pin icon in the top right corner of the tab, or right clicking the tab and selecting 'Unpin'.",
+          "bottom-right"
+        );
+      }, 500);
     }
   });
 });
@@ -67,6 +204,19 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     }
 
     console.warn(`PinStay: Preventing pinned tab ${tabId} from being closed`);
+
+    // Show popup notification before recreating the tab
+    // We need to show this on the active tab since the closed tab is gone
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0] && tabs[0].id) {
+        showPopup(
+          tabs[0].id,
+          "PinStay",
+          "You must unpin a tab to close it. You can unpin a tab by clicking the pin icon in the top right corner of the tab, or right clicking the tab and selecting 'Unpin'.",
+          "bottom-right"
+        );
+      }
+    });
 
     // Recreate the tab with the same URL
     chrome.tabs.create(
@@ -110,7 +260,16 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 // 🧠 Also do it when extension is first installed or reloaded
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
+  // Show install page for new installations
+  if (details.reason === "install") {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL("install.html"),
+      active: true,
+    });
+  }
+
+  // Initialize existing pinned tabs
   chrome.tabs.query({ pinned: true }, (tabs) => {
     for (const tab of tabs) {
       if (tab.url && tab.id != null) {
@@ -123,3 +282,6 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   });
 });
+
+// Handle uninstall event
+chrome.runtime.setUninstallURL(chrome.runtime.getURL("uninstall.html"));
