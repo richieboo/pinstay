@@ -269,8 +269,9 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   delete pinnedDomains[tabId];
 });
 
-// 🧠 On startup, lock any currently pinned tabs
+// 🧠 On startup, lock any currently pinned tabs and set uninstall URL
 chrome.runtime.onStartup.addListener(() => {
+  // Initialize existing pinned tabs
   chrome.tabs.query({ pinned: true }, (tabs) => {
     for (const tab of tabs) {
       if (tab.url && tab.id != null) {
@@ -282,6 +283,11 @@ chrome.runtime.onStartup.addListener(() => {
       }
     }
   });
+
+  // Set uninstall URL on startup - direct to Google Form
+  const uninstallURL = "https://docs.google.com/forms/d/e/1FAIpQLSd5tLRhiwxR3LLYWB00dXW2xv55aXEKDwOjvDNnrgZqQjjTVQ/viewform?usp=header";
+  chrome.runtime.setUninstallURL(uninstallURL);
+  console.log("PinStay: Uninstall URL set on startup:", uninstallURL);
 });
 
 // 🧠 Also do it when extension is first installed or reloaded
@@ -307,6 +313,8 @@ chrome.runtime.onInstalled.addListener((details) => {
     }
   });
 
-  // Note: Uninstall URL setting removed due to timing issues
-  // The uninstall.html page will still work if accessed directly
+  // Set uninstall URL - direct to Google Form
+  const uninstallURL = "https://docs.google.com/forms/d/e/1FAIpQLSd5tLRhiwxR3LLYWB00dXW2xv55aXEKDwOjvDNnrgZqQjjTVQ/viewform?usp=header";
+  chrome.runtime.setUninstallURL(uninstallURL);
+  console.log("PinStay: Uninstall URL set:", uninstallURL);
 });
