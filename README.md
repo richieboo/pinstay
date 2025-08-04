@@ -29,7 +29,7 @@ A Chrome extension that prevents pinned tabs from accidentally navigating away f
 
 ### Basic Usage
 
-1. **Pin a tab** by clicking the pin icon in the tab bar
+1. **Pin a tab** by clicking the pin icon in the tab bar, or right-click the tab and select "Pin tab"
 2. PinStay automatically locks the tab to its current domain
 3. Try to navigate away or close the tab - PinStay will prevent it and show a notification
 4. **Unpin the tab** to remove protection (click the pin icon again or right-click → "Unpin")
@@ -38,7 +38,7 @@ A Chrome extension that prevents pinned tabs from accidentally navigating away f
 
 - **Navigation Blocked**: A popup appears saying "Your pinned tabs are locked to the domain they were pinned at"
 - **Tab Closure Blocked**: A popup appears with instructions on how to unpin the tab
-- **Browser Shutdown**: PinStay automatically allows the browser to close normally
+- **Browser Shutdown**: PinStay allows the browser to close normally
 
 ### Popup Notifications
 
