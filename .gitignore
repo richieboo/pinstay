@@ -1,0 +1,9 @@
+# PinStay extension files
+PinStay original.png
+makeicons.bat
+
+# Common files to ignore
+*.zip
+*.log
+.DS_Store
+Thumbs.db 
