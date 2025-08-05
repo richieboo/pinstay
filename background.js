@@ -197,7 +197,7 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
         showPopup(
           tab.id,
           "PinStay",
-          "Your pinned tabs are locked to the domain they were pinned at",
+          "Your pinned tabs are locked to the domain they were pinned.",
           "bottom-right"
         );
       }, 500);
@@ -215,6 +215,9 @@ chrome.windows.onRemoved.addListener((windowId) => {
     `PinStay: Browser window ${windowId} closing, allowing all tabs to close`
   );
 });
+
+// Note: Chrome's extension API doesn't allow preventing the right-click "Close tab" action
+// We can only recreate the tab after it's closed, which is what the onRemoved listener does
 
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   // Check if this tab was pinned before removal
