@@ -1,5 +1,67 @@
 const pinnedDomains = {};
 
+// Persist pinned tab map in session storage to survive service worker sleeps
+function getWritableStorageArea() {
+  try {
+    if (chrome.storage && chrome.storage.session) return chrome.storage.session;
+  } catch {}
+  try {
+    if (chrome.storage && chrome.storage.local) return chrome.storage.local;
+  } catch {}
+  return null;
+}
+
+function savePinnedDomainsToSession() {
+  try {
+    const area = getWritableStorageArea();
+    if (area) area.set({ pinnedDomains });
+  } catch (e) {
+    console.warn(
+      "PinStay: Failed to persist pinnedDomains to session storage",
+      e
+    );
+  }
+}
+
+function loadPinnedDomainsFromSession(callback) {
+  try {
+    const area = getWritableStorageArea();
+    if (area) {
+      area.get("pinnedDomains", (result) => {
+        if (
+          result &&
+          result.pinnedDomains &&
+          typeof result.pinnedDomains === "object"
+        ) {
+          // Merge instead of replace to avoid clobbering any in-flight updates
+          Object.assign(pinnedDomains, result.pinnedDomains);
+        }
+        if (typeof callback === "function") callback();
+      });
+      return;
+    }
+  } catch (e) {
+    console.warn(
+      "PinStay: Failed to load pinnedDomains from session storage",
+      e
+    );
+  }
+  if (typeof callback === "function") callback();
+}
+
+function hydratePinnedDomainsFromTabs(callback) {
+  chrome.tabs.query({ pinned: true }, (tabs) => {
+    for (const tab of tabs) {
+      if (tab.url && tab.id != null) {
+        const domain = getDomain(tab.url);
+        pinnedDomains[tab.id] = domain;
+      }
+    }
+    savePinnedDomainsToSession();
+    if (typeof callback === "function") callback();
+  });
+}
+
 function getDomain(url) {
   try {
     const urlObj = new URL(url);
@@ -154,6 +216,12 @@ function showPopup(tabId, title, message, position = "bottom-right") {
   });
 }
 
+// On service worker start/wake, quickly hydrate in-memory map from session
+// then refresh from the actual set of pinned tabs to ensure correctness.
+loadPinnedDomainsFromSession(() => {
+  hydratePinnedDomainsFromTabs();
+});
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (!tab || !tab.url) return;
 
@@ -162,12 +230,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     const currentDomain = getDomain(tab.url);
     pinnedDomains[tabId] = currentDomain;
     console.log(`PinStay: Locked tab ${tabId} to domain ${currentDomain}`);
+    savePinnedDomainsToSession();
   }
 
   // If tab was unpinned, remove it from protection
   if (!tab.pinned && tabId in pinnedDomains) {
     delete pinnedDomains[tabId];
     console.log(`PinStay: Unlocked tab ${tabId} (unpinned)`);
+    savePinnedDomainsToSession();
   }
 });
 
@@ -220,14 +290,14 @@ chrome.windows.onRemoved.addListener((windowId) => {
 // We can only recreate the tab after it's closed, which is what the onRemoved listener does
 
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
-  // Check if this tab was pinned before removal
-  if (tabId in pinnedDomains) {
+  const proceedWithDomain = (domain) => {
     // Allow browser to close - don't prevent tab removal if browser is shutting down
     if (removeInfo.isWindowClosing || isBrowserShuttingDown) {
       console.log(
         `PinStay: Allowing pinned tab ${tabId} to close (browser shutting down)`
       );
       delete pinnedDomains[tabId];
+      savePinnedDomainsToSession();
       return;
     }
 
@@ -246,30 +316,63 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
       }
     });
 
-    // Recreate the tab with the same URL
+    // Recreate the tab with the same domain
     chrome.tabs.create(
       {
-        url: `https://${pinnedDomains[tabId]}`,
+        url: `https://${domain}`,
         pinned: true,
         active: false,
       },
       (newTab) => {
         if (newTab && newTab.id) {
           // Transfer the domain lock to the new tab
-          pinnedDomains[newTab.id] = pinnedDomains[tabId];
+          pinnedDomains[newTab.id] = domain;
           console.log(
-            `PinStay: Recreated pinned tab ${newTab.id} for domain ${pinnedDomains[tabId]}`
+            `PinStay: Recreated pinned tab ${newTab.id} for domain ${domain}`
           );
+          savePinnedDomainsToSession();
         }
       }
     );
+  };
 
-    // Don't delete from pinnedDomains yet, as we're recreating the tab
+  // Prefer in-memory, but fall back to session storage if the worker just woke
+  if (tabId in pinnedDomains) {
+    const domain = pinnedDomains[tabId];
+    // Don't delete yet; we need it to recreate
+    proceedWithDomain(domain);
     return;
   }
 
-  // Only delete from pinnedDomains if it wasn't a pinned tab we prevented from closing
+  // Fallback: try to recover the domain from session storage
+  try {
+    const area = getWritableStorageArea();
+    if (area) {
+      area.get("pinnedDomains", (result) => {
+        const stored = (result && result.pinnedDomains) || {};
+        const domain = stored[tabId];
+        if (!domain) {
+          // Unknown tab; ensure cleanup
+          delete pinnedDomains[tabId];
+          savePinnedDomainsToSession();
+          return;
+        }
+        // Sync memory from storage and proceed
+        pinnedDomains[tabId] = domain;
+        proceedWithDomain(domain);
+      });
+      return;
+    }
+  } catch (e) {
+    console.warn(
+      "PinStay: Failed to fetch pinnedDomains from session storage",
+      e
+    );
+  }
+
+  // If no info, ensure cleanup
   delete pinnedDomains[tabId];
+  savePinnedDomainsToSession();
 });
 
 // 🧠 On startup, lock any currently pinned tabs and set uninstall URL
@@ -285,6 +388,7 @@ chrome.runtime.onStartup.addListener(() => {
         );
       }
     }
+    savePinnedDomainsToSession();
   });
 
   // Set uninstall URL on startup - direct to Google Form
@@ -315,6 +419,7 @@ chrome.runtime.onInstalled.addListener((details) => {
         );
       }
     }
+    savePinnedDomainsToSession();
   });
 
   // Set uninstall URL - direct to Google Form
