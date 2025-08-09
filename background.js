@@ -316,12 +316,13 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
       }
     });
 
-    // Recreate the tab with the same domain
+    // Recreate the tab with the same domain, in the same window, and make it active
     chrome.tabs.create(
       {
         url: `https://${domain}`,
         pinned: true,
-        active: false,
+        active: true,
+        windowId: removeInfo.windowId,
       },
       (newTab) => {
         if (newTab && newTab.id) {
@@ -330,6 +331,8 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
           console.log(
             `PinStay: Recreated pinned tab ${newTab.id} for domain ${domain}`
           );
+          // Clean up old mapping
+          delete pinnedDomains[tabId];
           savePinnedDomainsToSession();
         }
       }
