@@ -5,11 +5,12 @@ A Chrome extension that prevents pinned tabs from accidentally navigating away f
 ## Features ✨
 
 - **🔒 Domain Locking**: Prevents pinned tabs from leaving their original domain
-- **🚫 Tab Closure Protection**: Stops accidental closure of pinned tabs
+- **🚫 Tab Closure Protection**: Stops accidental closure of pinned tabs and eliminates "Leave site?" warnings
 - **💡 Smart Notifications**: Shows helpful popup messages when actions are blocked
 - **🔄 Browser Shutdown Support**: Automatically allows browser closure during shutdown
 - **📱 User-Friendly**: Clean, non-intrusive notifications with custom styling
 - **⚡ Lightweight**: Minimal performance impact on your browsing experience
+- **🛡️ Persistent Protection**: Works reliably even after browser sits idle overnight
 
 ## Installation 🚀
 
@@ -65,7 +66,8 @@ pinstay/
 
 - `tabs`: To monitor and control tab behavior
 - `webNavigation`: To intercept navigation attempts
-- `scripting`: To inject popup notifications into pages
+- `scripting`: To inject popup notifications and beforeunload overrides into pages
+- `storage`: To persist pinned tab state across service worker sleeps
 
 ### Browser Compatibility
 
@@ -95,6 +97,24 @@ If PinStay helps you stay organized, consider buying me a coffee!
 [Buy me a coffee](https://www.buymeacoffee.com/richieboo)
 
 ## Changelog 📝
+
+### Version 1.0.3
+
+- **Fixed MV3 idle/wake state loss**: Added session storage persistence so protection works after browser sits idle overnight
+- **Eliminated "Leave site?" warnings**: Added beforeunload override to prevent Google apps and other sites from showing unsaved changes warnings when closing pinned tabs
+- **Improved tab recreation**: Recreates closed pinned tabs in the same window and activates them for better UX
+- **Enhanced reliability**: Added storage permission and fallback mechanisms for better state management
+- **Store compliance**: Updated icon sizes (16/48/128) for Chrome Web Store requirements
+
+### Version 1.0.2
+
+- Fixed MV3 service worker state persistence
+- Added storage permission for session data
+- Updated manifest with proper icon sizes
+
+### Version 1.0.1
+
+- Initial Chrome Web Store release
 
 ### Version 1.0.0
 
