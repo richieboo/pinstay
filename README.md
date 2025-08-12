@@ -16,7 +16,7 @@ A Chrome extension that prevents pinned tabs from accidentally navigating away f
 
 ### From Chrome Web Store (Recommended)
 
-[Coming Soon - Link to Chrome Web Store]
+[Install PinStay](https://chromewebstore.google.com/detail/pinstay/hmaopbijmlmcpcjfmpihiofkkjocnbne)
 
 ### Manual Installation (Developer Mode)
 
