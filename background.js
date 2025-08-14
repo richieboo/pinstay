@@ -1,6 +1,7 @@
 const pinnedTabs = {}; // Store tabId -> { domain, url }
 
 // Function to disable beforeunload warnings for pinned tabs
+// MODIFIED: Now only prevents user-initiated navigation warnings, not logout scripts
 function disableBeforeUnloadForPinnedTab(tabId) {
   chrome.tabs.get(tabId, (tab) => {
     if (chrome.runtime.lastError || !tab || !tab.url || !tab.pinned) {
@@ -18,34 +19,88 @@ function disableBeforeUnloadForPinnedTab(tabId) {
       return;
     }
 
-    chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      func: () => {
-        // Override beforeunload to prevent "Leave site?" warnings for pinned tabs
-        window.addEventListener('beforeunload', function(e) {
-          // For pinned tabs, we don't want to show the warning
-          e.preventDefault();
-          e.returnValue = '';
-          return '';
-        }, true);
-        
-        // Also override any existing beforeunload handlers
-        const originalAddEventListener = window.addEventListener;
-        window.addEventListener = function(type, listener, options) {
-          if (type === 'beforeunload') {
-            // Replace beforeunload listeners with empty functions for pinned tabs
-            return originalAddEventListener.call(this, type, function(e) {
-              e.preventDefault();
-              e.returnValue = '';
-              return '';
-            }, options);
-          }
-          return originalAddEventListener.call(this, type, listener, options);
-        };
-      }
-    }).catch((error) => {
-      // Silently fail for restricted pages
-    });
+    chrome.scripting
+      .executeScript({
+        target: { tabId: tabId },
+        func: () => {
+          // Only prevent beforeunload warnings for user-initiated navigation
+          // Allow logout scripts to work normally
+          let isUserNavigation = false;
+          let userActionTimeout = null;
+
+          // Track user navigation attempts
+          document.addEventListener(
+            "click",
+            function (e) {
+              // If user clicks a link or form submit, mark as user navigation
+              if (
+                e.target.tagName === "A" ||
+                e.target.tagName === "BUTTON" ||
+                e.target.closest("a") ||
+                e.target.closest("button")
+              ) {
+                isUserNavigation = true;
+                // Reset after a short delay
+                if (userActionTimeout) clearTimeout(userActionTimeout);
+                userActionTimeout = setTimeout(() => {
+                  isUserNavigation = false;
+                }, 1000);
+              }
+            },
+            true
+          );
+
+          // Track keyboard shortcuts (Ctrl+W, Ctrl+R, etc.)
+          document.addEventListener(
+            "keydown",
+            function (e) {
+              // Common navigation shortcuts
+              if (
+                (e.ctrlKey || e.metaKey) &&
+                (e.key === "w" ||
+                  e.key === "r" ||
+                  e.key === "l" ||
+                  e.key === "t")
+              ) {
+                isUserNavigation = true;
+                if (userActionTimeout) clearTimeout(userActionTimeout);
+                userActionTimeout = setTimeout(() => {
+                  isUserNavigation = false;
+                }, 1000);
+              }
+            },
+            true
+          );
+
+          // Track browser navigation (back/forward buttons, address bar)
+          window.addEventListener("popstate", function () {
+            isUserNavigation = true;
+            if (userActionTimeout) clearTimeout(userActionTimeout);
+            userActionTimeout = setTimeout(() => {
+              isUserNavigation = false;
+            }, 1000);
+          });
+
+          // Override beforeunload only for user navigation, not logout scripts
+          window.addEventListener(
+            "beforeunload",
+            function (e) {
+              // Only prevent the warning if it's user navigation
+              // Allow logout scripts to show their warnings
+              if (isUserNavigation) {
+                e.preventDefault();
+                e.returnValue = "";
+                return "";
+              }
+              // For logout scripts, let the original behavior happen
+            },
+            true
+          );
+        },
+      })
+      .catch((error) => {
+        // Silently fail for restricted pages
+      });
   });
 }
 
@@ -98,7 +153,7 @@ function hydratePinnedTabsFromTabs(callback) {
       if (tab.url && tab.id != null) {
         const domain = getDomain(tab.url);
         pinnedTabs[tab.id] = { domain, url: tab.url };
-        // Disable beforeunload warnings for existing pinned tabs
+        // Disable beforeunload warnings for existing pinned tabs (selective approach)
         disableBeforeUnloadForPinnedTab(tab.id);
       }
     }
@@ -276,7 +331,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     pinnedTabs[tabId] = { domain: currentDomain, url: tab.url };
     console.log(`PinStay: Locked tab ${tabId} to domain ${currentDomain}`);
     savePinnedTabsToSession();
-    // Disable beforeunload warnings for this pinned tab
+    // Disable beforeunload warnings for this pinned tab (selective approach)
     disableBeforeUnloadForPinnedTab(tabId);
   }
 
@@ -381,7 +436,7 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
           // Clean up old mapping
           delete pinnedTabs[tabId];
           savePinnedTabsToSession();
-          // Disable beforeunload warnings for the recreated tab
+          // Disable beforeunload warnings for the recreated tab (selective approach)
           setTimeout(() => disableBeforeUnloadForPinnedTab(newTab.id), 100);
         }
       }
@@ -435,7 +490,7 @@ chrome.runtime.onStartup.addListener(() => {
         console.log(
           `PinStay: Initialized pinned tab ${tab.id} to domain ${domain}`
         );
-        // Disable beforeunload warnings for pinned tabs on startup
+        // Disable beforeunload warnings for pinned tabs on startup (selective approach)
         disableBeforeUnloadForPinnedTab(tab.id);
       }
     }
@@ -468,7 +523,7 @@ chrome.runtime.onInstalled.addListener((details) => {
         console.log(
           `PinStay: Initialized pinned tab ${tab.id} to domain ${domain}`
         );
-        // Disable beforeunload warnings for pinned tabs on install/reload
+        // Disable beforeunload warnings for pinned tabs on install/reload (selective approach)
         disableBeforeUnloadForPinnedTab(tab.id);
       }
     }

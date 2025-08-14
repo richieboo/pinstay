@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PinStay",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "Prevents pinned tabs from leaving their original domain and being closed accidentally.",
   "permissions": ["tabs", "webNavigation", "scripting", "storage"],
 
