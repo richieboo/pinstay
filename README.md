@@ -1,5 +1,10 @@
 # PinStay 📌
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/pinstay/hmaopbijmlmcpcjfmpihiofkkjocnbne)
+[![Privacy](https://img.shields.io/badge/Privacy-Zero%20Tracking-success)](PRIVACY.md)
+[![Open Source](https://img.shields.io/badge/Code-100%25%20Open-brightgreen)](https://github.com/richieboo/pinstay)
+
 A Chrome extension that prevents pinned tabs from accidentally navigating away from their original domain.
 
 ## Features ✨
@@ -9,6 +14,38 @@ A Chrome extension that prevents pinned tabs from accidentally navigating away f
 - **📱 User-Friendly**: Clean, non-intrusive notifications with custom styling
 - **⚡ Lightweight**: Minimal performance impact on your browsing experience
 - **🛡️ Persistent Protection**: Works reliably even after browser sits idle overnight
+
+## Security & Privacy 🔐
+
+**100% Open Source & Auditable**
+
+PinStay's complete source code is available for review in this repository. You can verify exactly what the extension does.
+
+**Zero Data Collection**
+
+- ❌ No tracking
+- ❌ No analytics
+- ❌ No data sent to external servers
+- ✅ All processing happens locally in your browser
+
+**About the "Not Trusted by Enhanced Safe Browsing" Warning**
+
+Chrome may show this warning because PinStay requires broad permissions (`<all_urls>`) to function. Here's why this is necessary and safe:
+
+- **Why needed**: PinStay must monitor navigation on ANY website you might pin (Gmail, GitHub, localhost:3000, etc.). We can't predict which domains you'll use.
+- **What we don't do**: PinStay does not read, collect, or transmit your page content or browsing data.
+- **Transparency**: Our entire codebase is open source. Review `background.js` to see exactly what happens.
+- **Legitimacy**: This warning appears for many legitimate extensions that need cross-site permissions. It often fades as the extension gains trust through usage.
+
+**Permissions Explained**
+
+- `tabs` - Track which tabs are pinned
+- `webNavigation` - Detect and redirect navigation attempts
+- `scripting` - Show local notifications on the page
+- `storage` - Remember pinned tabs between sessions
+- `<all_urls>` - Monitor navigation across all domains (necessary for any-site pinning)
+
+See our full [Privacy Policy](PRIVACY.md) and [Security Policy](SECURITY.md) for more details.
 
 ## Installation 🚀
 
