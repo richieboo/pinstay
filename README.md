@@ -132,10 +132,19 @@ If PinStay helps you stay organized, consider buying me a coffee!
 
 ## Changelog 📝
 
+### Version 1.0.8
+
+- **Enhanced transparency**: Added comprehensive SECURITY.md with detailed vulnerability reporting process
+- **Security documentation**: Added explanation of Chrome's "Enhanced Safe Browsing" warning and why it appears
+- **Installation improvements**: Updated welcome page to proactively address security warning concerns
+- **Trust indicators**: Added security badges and "Security & Privacy" section to README
+- **Updated privacy policy**: Enhanced PRIVACY.md with clear explanations of permissions and data handling
+
 ### Version 1.0.7
 
 - **Removed tab closure protection**: Simplified extension to focus solely on navigation protection since Chrome already prevents closing pinned tabs natively
 - **Streamlined codebase**: Removed redundant tab recreation and browser shutdown detection logic
+- **Fixed port preservation**: Pinned tabs with port numbers now redirect correctly (e.g., localhost:3000)
 - **Updated description**: Clarified that PinStay now only prevents navigation away from the original domain
 
 ### Version 1.0.3

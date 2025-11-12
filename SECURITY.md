@@ -100,7 +100,7 @@ Please include the following in your report:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.7   | ✅ Current         |
+| 1.0.8   | ✅ Current         |
 | 1.0.x   | ✅ Yes             |
 | < 1.0   | ❌ No              |
 
@@ -179,5 +179,5 @@ All security updates will be documented in the [CHANGELOG](README.md#changelog-)
 ---
 
 **Last Updated**: 2025-01-12  
-**Version**: 1.0.7
+**Version**: 1.0.8
 
