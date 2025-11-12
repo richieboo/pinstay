@@ -1,13 +1,11 @@
 # PinStay 📌
 
-A Chrome extension that prevents pinned tabs from accidentally navigating away from their original domain and being closed.
+A Chrome extension that prevents pinned tabs from accidentally navigating away from their original domain.
 
 ## Features ✨
 
 - **🔒 Domain Locking**: Prevents pinned tabs from leaving their original domain
-- **🚫 Tab Closure Protection**: Stops accidental closure of pinned tabs and eliminates "Leave site?" warnings
-- **💡 Smart Notifications**: Shows helpful popup messages when actions are blocked
-- **🔄 Browser Shutdown Support**: Automatically allows browser closure during shutdown
+- **💡 Smart Notifications**: Shows helpful popup messages when navigation is blocked
 - **📱 User-Friendly**: Clean, non-intrusive notifications with custom styling
 - **⚡ Lightweight**: Minimal performance impact on your browsing experience
 - **🛡️ Persistent Protection**: Works reliably even after browser sits idle overnight
@@ -32,14 +30,13 @@ A Chrome extension that prevents pinned tabs from accidentally navigating away f
 
 1. **Pin a tab** by clicking the pin icon in the tab bar, or right-click the tab and select "Pin tab"
 2. PinStay automatically locks the tab to its current domain
-3. Try to navigate away or close the tab - PinStay will prevent it and show a notification
+3. Try to navigate away - PinStay will prevent it and show a notification
 4. **Unpin the tab** to remove protection (click the pin icon again or right-click → "Unpin")
 
-### What Happens When Actions Are Blocked
+### What Happens When Navigation Is Blocked
 
 - **Navigation Blocked**: A popup appears saying "Your pinned tabs are locked to the domain they were pinned at"
-- **Tab Closure Blocked**: A popup appears with instructions on how to unpin the tab
-- **Browser Shutdown**: PinStay allows the browser to close normally
+- The tab will be redirected back to the original domain
 
 ### Popup Notifications
 
@@ -98,10 +95,16 @@ If PinStay helps you stay organized, consider buying me a coffee!
 
 ## Changelog 📝
 
+### Version 1.0.7
+
+- **Removed tab closure protection**: Simplified extension to focus solely on navigation protection since Chrome already prevents closing pinned tabs natively
+- **Streamlined codebase**: Removed redundant tab recreation and browser shutdown detection logic
+- **Updated description**: Clarified that PinStay now only prevents navigation away from the original domain
+
 ### Version 1.0.3
 
 - **Fixed MV3 idle/wake state loss**: Added session storage persistence so protection works after browser sits idle overnight
-- **Eliminated "Leave site?" warnings**: Added beforeunload override to prevent Google apps and other sites from showing unsaved changes warnings when closing pinned tabs
+- **Eliminated "Leave site?" warnings**: Added beforeunload override to prevent Google apps and other sites from showing unsaved changes warnings
 - **Improved tab recreation**: Recreates closed pinned tabs in the same window and activates them for better UX
 - **Enhanced reliability**: Added storage permission and fallback mechanisms for better state management
 - **Store compliance**: Updated icon sizes (16/48/128) for Chrome Web Store requirements
