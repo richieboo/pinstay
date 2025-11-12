@@ -26,6 +26,43 @@ PinStay only monitors:
 - ❌ Cookies or authentication tokens
 - ❌ Personal information
 
+## Understanding Chrome's "Not Trusted" Warning
+
+Chrome may display a warning that PinStay is "not trusted by Enhanced Safe Browsing." This is important to understand:
+
+### Why This Warning Appears (Technical Reasons)
+
+The warning is **automatically triggered** by:
+- ✅ **Broad Permissions**: Using `<all_urls>` host permissions (which PinStay requires to monitor navigation on any domain you pin)
+- ✅ **New Extension**: Being relatively new without millions of established users yet
+- ✅ **Automated System**: Google's algorithms flagging extensions with wide-reaching permissions
+
+### What Does NOT Affect This Warning
+
+The warning is **NOT based on**:
+- ❌ Code quality or security practices
+- ❌ Having proper documentation or privacy policies
+- ❌ Being open source or auditable
+- ❌ Actual malicious behavior or security issues
+
+### What This Means for You
+
+- **It's a precautionary notice**, not evidence of malicious behavior
+- Many **legitimate extensions** with necessary broad permissions show this warning
+- You can **verify PinStay's safety** by auditing the open source code in this repository
+- The warning **may fade over time** as the extension gains users and maintains good behavior
+
+### How We Address This
+
+While we cannot remove Google's automated warning, we provide:
+- ✅ Complete source code transparency (audit `background.js`)
+- ✅ Detailed documentation of what we do (and don't do)
+- ✅ Clear explanation of why permissions are needed
+- ✅ Zero external data transmission (verifiable in code)
+- ✅ Active security policy with vulnerability reporting
+
+**Bottom line**: The warning reflects PinStay's technical requirements, not its trustworthiness. We encourage technical users to review our code and judge for themselves.
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability in PinStay, please help us by following responsible disclosure:
